@@ -1,0 +1,49 @@
+name: Build and Push Docker Image
+
+# 1. When should this script run?
+# Every time you push to the "main" branch.
+on:
+  push:
+    branches: [ "main" ]
+
+# 2. What permissions does this script need?
+# It needs permission to upload a Docker package to your GitHub account.
+permissions:
+  contents: read
+  packages: write
+
+# 3. What should the server do?
+jobs:
+  build-and-publish:
+    # Rent the latest Ubuntu Linux server from GitHub
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step A: Download your code onto the Linux server
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step B: Log into GitHub's Docker Registry (GHCR)
+      # GitHub automatically provides the GITHUB_TOKEN secret for security.
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step C: Extract metadata (tags, labels) for Docker
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+
+      # Step D: Build the Docker image using your Dockerfile, and push it to GHCR
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
