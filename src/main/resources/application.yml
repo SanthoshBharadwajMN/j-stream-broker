@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: j-stream-broker
+
+#  r2dbc:
+#    url: r2dbc:postgresql://neondb_owner:npg_Gqe8dQho3EZk@ep-shiny-cake-axam34ij.c-4.us-east-2.aws.neon.tech/neondb
+#    username: neondb_owner
+#    password: npg_Gqe8dQho3EZk
+#    properties:
+#      sslMode: require
+#      options: endpoint=ep-shiny-cake-axam34ij
+
+  sql:
+    init:
+      mode: always
+  
+  # Configure RSocket Server for binary messaging over TCP
+  rsocket:
+    server:
+      port: 7000
+      transport: tcp
+
+# Web server for the admin dashboard
+server:
+  port: 8080
