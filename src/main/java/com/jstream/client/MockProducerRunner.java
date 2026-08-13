@@ -19,7 +19,7 @@ public class MockProducerRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        log.info("Starting mock producer. Connecting to broker via TCP");
+        log.info("[MockProducer] Starting mock producer. Connecting to broker via TCP");
         Flux.interval(Duration.ofSeconds(2))
                 .flatMap(i -> {
                     String message = "Hi, message ID " + i;

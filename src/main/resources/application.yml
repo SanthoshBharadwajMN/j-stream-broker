@@ -23,3 +23,7 @@ spring:
 # Web server for the admin dashboard
 server:
   port: 8080
+
+logging:
+  level:
+    com.jstream: DEBUG

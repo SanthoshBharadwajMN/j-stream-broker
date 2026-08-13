@@ -20,8 +20,6 @@ public class DatabaseConfig extends AbstractR2dbcConfiguration {
         String username = System.getenv("NEON_USERNAME");
         String password = System.getenv("NEON_PASSWORD");
 
-        System.out.println("endpointId: " + endpointId + ", username: " + username + ", password: " + password);
-
         if (endpointId == null || username == null || password == null) {
             throw new IllegalStateException("CRITICAL: Missing Neon credentials for Postgres connection");
         }
