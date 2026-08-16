@@ -12,6 +12,8 @@ import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 @Slf4j
 @Controller
 public class MessageBrokerController {
@@ -40,11 +42,13 @@ public class MessageBrokerController {
                                                 @DestinationVariable("group") String group,
                                                 Flux<Long> clientAcks
     ) {
-        clientAcks.flatMap(ackedOffset -> {
-            log.info("[Controller] Received ACK from [{}] for offset {}", group, ackedOffset);
-            // Update the database only when the consumer provides ACK
-            return consumerOffsetRepository.upsertOffset(topic, group, ackedOffset);
-        }).subscribe(); // Listen to ACKs
+        clientAcks
+                .filter(ackedOffset -> ackedOffset >= 0) // Ignore the -1L dummy ACK
+                .flatMap(ackedOffset -> {
+                    log.info("[Controller] Received ACK from [{}] for offset {}", group, ackedOffset);
+                    // Update the database only when the consumer provides ACK
+                    return consumerOffsetRepository.upsertOffset(topic, group, ackedOffset);
+                }).subscribe(); // Listen to ACKs
 
         /*
         If a consumer group disconnects due to an issue at some point and reconnects a while later, fetch the last
@@ -56,9 +60,11 @@ public class MessageBrokerController {
                 .defaultIfEmpty(0L)
                 .flatMapMany(lastOffset -> {
                     log.info("[Controller] Consumer [{}] last read offset was {}. Initiating replay", group, lastOffset);
-                    Flux<BrokerMessage> oldBrokerMessages = storageService.replaySince(topic, lastOffset);
+                    AtomicLong highestOffsetSeen = new AtomicLong(lastOffset); // To solve boundary issue during replay
+                    Flux<BrokerMessage> oldBrokerMessages = storageService.replaySince(topic, lastOffset)
+                            .doOnNext(message -> highestOffsetSeen.set(message.offset()));
                     Flux<BrokerMessage> liveBrokerMessages = topicService.subscribe(topic)
-                            .filter(liveMessage -> liveMessage.offset() > lastOffset);
+                            .filter(liveMessage -> liveMessage.offset() > highestOffsetSeen.get());
                     return Flux.concat(oldBrokerMessages, liveBrokerMessages);
                 });
     }
